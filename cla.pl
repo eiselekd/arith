@@ -6,7 +6,7 @@ $cin = 0;
 @p = ([] x 64);
 @g = ([] x 64);
 @g = ([] x 64);
-@c = ([] x 65);
+@c = ([] x 64);
 @f = ();
 
 sub _next($i,$r) {
@@ -89,10 +89,10 @@ sub gen_c($i,$l) {
     my $p3 = last_p($i+3*$l);
 
     my $cin0 = first_c($i+0*$l-1);
-    my $c0   = next_c($i+1*$l-1);
-    my $c1   = next_c($i+2*$l-1);
-    my $c2   = next_c($i+3*$l-1);
-    my $c3   = next_c($i+4*$l-1);
+    my $c0   =  next_c($i+1*$l-1);
+    my $c1   =  next_c($i+2*$l-1);
+    my $c2   =  next_c($i+3*$l-1);
+    my $c3   =  next_c($i+4*$l-1);
     
     push(@f,sub {
 
