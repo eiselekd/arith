@@ -1,4 +1,5 @@
 #!/usr/bin/perl
+use bignum;
 
 @a=();
 @b=();
@@ -102,7 +103,7 @@ for ($i = 0; $i < 64/64; $i++) {
 }
 
 sub gen_c {
-    my ($i,$l,$d) = @_; 
+    my ($i,$l,$d,$docout) = @_; 
     my $g0 = nth_g($i+1*$l-1,$d);
     my $g1 = nth_g($i+2*$l-1,$d);
     my $g2 = nth_g($i+3*$l-1,$d);
@@ -118,12 +119,16 @@ sub gen_c {
     my $c1  =  c_pos($i+1*$l);
     my $c2  =  c_pos($i+2*$l);
     my $c3  =  c_pos($i+3*$l);
+    my $c4  =  c_pos($i+4*$l);
     
     push(@f,sub {
 	
 	$$c1   = digit($$gin*$$p0                +$$g0);
 	$$c2   = digit($$gin*$$p0*$$p1           +$$g0*$$p1      + $$g1);
 	$$c3   = digit($$gin*$$p0*$$p1*$$p2      +$$g0*$$p1*$$p2 + $$g1*$$p2 + $$g2);
+	if ($docout) {
+	    $$c4   = digit($$gin*$$p0*$$p1*$$p2*$$p3      +$$g0*$$p1*$$p2*$$p3 + $$g1*$$p2*$$p3 + $$g2*$$p3 + $$g3);
+	}
 
 	 });
 }
@@ -132,17 +137,17 @@ sub gen_c {
 
 # define 3 carries
 for ($i = 0; $i < 64/64; $i++) {
-    gen_c($i*64,16,2);
+    gen_c($i*64,16,2,1);
 }
 
 # define 3*4 carries
 for ($i = 0; $i < 64/16; $i++) {
-    gen_c($i*16,4,1);
+    gen_c($i*16,4,1,0);
 }
 
 # define 3*16 carries
 for ($i = 0; $i < 64/4; $i++) {
-    gen_c($i*4,1,0);
+    gen_c($i*4,1,0,0);
 }
 
 # generate final sum
@@ -163,41 +168,47 @@ for ($i = 0; $i < 64; $i++) {
 
 
 
-
 # test cla adder
 sub test_sum {
     my ($a,$b,$cin) = @_;
     
     for (my $i = 0; $i < 64; $i++) {
-	$a[$i] = 0;
-	$b[$i] = 0;
-    }
-    
-    # init with 32 bit only
-    for (my $i = 0; $i < 32; $i++) {
 	$a[$i] = ($a & (1<<$i)) ? 1 : 0;
 	$b[$i] = ($b & (1<<$i)) ? 1 : 0;
     }
+    print(" |".join("",@a));
+    print("\n");
+    print("+|".join("",@b));
+    print(" cin:$cin\n");
+    $c[0] = $cin;
     
     foreach my $f (@f) {
 	$f->();
     }
-    
+
+    print("= ".join("",@s));
+    print("\n");
+
     my $sum = 0;
-    for (my $i = 0; $i < 32; $i++) {
+    for (my $i = 0; $i < 64; $i++) {
 	$sum |= ($s[$i] << $i);
     }
     
-    printf("sum: 0x%x\n", $sum);
-    return $sum;
+    printf("sum: 0x%x : cout:%d\n", $sum, $c[64]);
+    return ($sum,$c[64]);
 }
 
 while (1) {
-    $a = int(rand(0x7ffffff));
-    $b = int(rand(0x7ffffff));
-    $cin = 0;
-    my $sum = test_sum($a, $b, $cin);
-    if ($a + $b != $sum) {
+    $a = (int(rand(0x7fffffffffffffff)) ^ rand(0x7fffffff)) & 0xffffffffffffffff;
+    $b = (int(rand(0x7fffffffffffffff)) ^ rand(0x7fffffff)) & 0xffffffffffffffff;
+    $cin = int(rand(2));
+    
+    my ($sum,$cout) = test_sum($a, $b, $cin);
+    
+    my $mysum  = ($a + $b + $cin) & 0xffffffffffffffff;
+    my $mycout = (($a + $b + $cin) & 0x10000000000000000) ? 1 : 0;
+    if ($mysum != $sum || $mycout != $cout) {
+	printf("Error expect 0x%x:%d got 0x%x:%d\n", $mysum, $mycout, $sum, $cout);
 	die("Error\n");
     } 
 }
