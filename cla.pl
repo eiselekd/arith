@@ -54,6 +54,7 @@ sub gen_pg_0 {
     my $b0 = \$b[$i];
     my $g0 = next_g($i);
     my $p0 = next_p($i);
+    
     push(@f,sub {
 	$$g0 = $$a0 & $$b0;
 	$$p0 = $$a0 | $$b0;
